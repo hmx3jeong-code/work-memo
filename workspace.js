@@ -176,15 +176,28 @@ function renderWorkspace() {
     const bodyTitle = document.createElement('strong');
     bodyTitle.textContent = '진행 과정';
     bodyHead.append(bodyTitle);
-    if (editing) bodyHead.append(makeButton('업무명 수정', 'small-quiet', () => {
-      if (dirty || saving) return alert('먼저 작성 중인 내용을 저장하거나 취소하세요.');
-      const value = prompt('업무 내용을 수정하세요.', task.title);
-      if (value === null || !value.trim()) return;
-      if (/[\r\n]/.test(value)) return alert('업무 제목은 한 줄로 입력해 주세요.');
-      const next = [...lines];
-      next[task.index] = lines[task.index].replace(task.title, value.trim());
-      save(next.join('\n'));
-    }));
+    if (editing) {
+      const actions = document.createElement('div');
+      actions.className = 'task-actions';
+      actions.append(makeButton('업무명 수정', 'small-quiet', () => {
+        if (dirty || saving) return alert('먼저 작성 중인 내용을 저장하거나 취소하세요.');
+        const value = prompt('업무 내용을 수정하세요.', task.title);
+        if (value === null || !value.trim()) return;
+        if (/[\r\n]/.test(value)) return alert('업무 제목은 한 줄로 입력해 주세요.');
+        const next = [...lines];
+        next[task.index] = lines[task.index].replace(task.title, value.trim());
+        save(next.join('\n'));
+      }));
+      if (task.done) actions.append(makeButton('완료 업무 삭제', 'small-quiet delete-task', () => {
+        if (dirty || saving) return alert('먼저 작성 중인 내용을 저장하거나 취소하세요.');
+        if (!confirm('완료된 업무를 삭제할까요? 해당 과정 메모도 함께 삭제되며 변경 이력은 남습니다.')) return;
+        const next = [...lines];
+        next.splice(task.index, task.end - task.index);
+        expandedTasks.clear();
+        save(next.join('\n'));
+      }));
+      bodyHead.append(actions);
+    }
     body.append(bodyHead);
     const notes = task.notes.filter(note => note.text.trim());
     if (!notes.length) {
