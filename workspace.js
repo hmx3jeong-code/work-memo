@@ -24,7 +24,6 @@ function beginDraft(host, initial, label, commit) {
   const controls = document.createElement('div');
   controls.className = 'inline-controls';
   const submit = makeButton('저장', 'small-primary', async () => {
-    if (!box.value.trim()) return alert('내용을 입력해 주세요.');
     box.disabled = true;
     submit.disabled = true;
     cancel.disabled = true;
@@ -215,7 +214,8 @@ function renderWorkspace() {
       if (editing && /^\s*>>/.test(note.text)) line.append(makeButton('수정', 'note-edit', () => {
         beginDraft(line, note.text.replace(/^\s*>>\s?/, ''), '과정 메모 수정', async value => {
           const next = [...lines];
-          next.splice(note.index, 1, ...value.replace(/\r\n?/g, '\n').split('\n').map(item => '>> ' + item));
+          const replacement = value.trim() ? value.replace(/\r\n?/g, '\n').split('\n').map(item => '>> ' + item) : [];
+          next.splice(note.index, 1, ...replacement);
           return save(next.join('\n'));
         });
       }));
@@ -226,7 +226,12 @@ function renderWorkspace() {
       draft.className = 'draft-area';
       draft.append(makeButton('+ 과정 메모 추가', 'add-note', () => beginDraft(draft, '', '진행 상황이나 상세 내용을 입력하세요', async value => {
         const next = insertNote(lines, task, value);
-        return next === null ? false : save(next);
+        if (next !== null) return save(next);
+        dirty = false;
+        inlineDraft = false;
+        $('editor').readOnly = false;
+        render();
+        return true;
       })));
       body.append(draft);
     }
