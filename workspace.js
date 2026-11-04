@@ -1,4 +1,5 @@
 let selectedCategory = null;
+let selectedStatus = 'all';
 const expandedTasks = new Set();
 
 function makeButton(text, className, action) {
@@ -88,6 +89,32 @@ function renderWorkspace() {
   });
   root.append(tabs);
   const category = categories[selectedCategory];
+  const completedCount = category.tasks.filter(task => task.done).length;
+  const statusOptions = [
+    { id: 'all', label: '전체', count: category.tasks.length },
+    { id: 'active', label: '진행 중', count: category.tasks.length - completedCount },
+    { id: 'done', label: '완료', count: completedCount }
+  ];
+  const statusTabs = document.createElement('div');
+  statusTabs.className = 'status-tabs';
+  statusTabs.setAttribute('aria-label', '업무 상태');
+  for (const option of statusOptions) {
+    const button = makeButton('', 'status-tab' + (option.id === selectedStatus ? ' active' : ''), () => {
+      if (dirty || saving) return alert('먼저 작성 중인 내용을 저장하거나 취소하세요.');
+      selectedStatus = option.id;
+      render();
+    });
+    button.setAttribute('aria-pressed', String(option.id === selectedStatus));
+    const label = document.createElement('span');
+    label.textContent = option.label;
+    const count = document.createElement('span');
+    count.className = 'status-count';
+    count.textContent = String(option.count);
+    button.append(label, count);
+    statusTabs.append(button);
+  }
+  root.append(statusTabs);
+  const visibleTasks = category.tasks.filter(task => selectedStatus === 'all' || task.done === (selectedStatus === 'done'));
   const panel = document.createElement('section');
   panel.className = 'workspace-panel';
   const panelHeader = document.createElement('div');
@@ -132,13 +159,13 @@ function renderWorkspace() {
   }
   const list = document.createElement('div');
   list.className = 'task-list';
-  if (!category.tasks.length) {
+  if (!visibleTasks.length) {
     const empty = document.createElement('p');
     empty.className = 'workspace-empty';
-    empty.textContent = '등록된 업무가 없습니다.';
+    empty.textContent = selectedStatus === 'all' ? '등록된 업무가 없습니다.' : selectedStatus === 'active' ? '진행 중인 업무가 없습니다.' : '완료된 업무가 없습니다.';
     list.append(empty);
   }
-  for (const task of category.tasks) {
+  for (const task of visibleTasks) {
     const details = document.createElement('details');
     details.className = 'task-detail';
     details.open = expandedTasks.has(task.index);
